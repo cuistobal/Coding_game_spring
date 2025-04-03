@@ -53,3 +53,6 @@ dkms.conf
 
 # Vim stuff
 tags
+
+# Specifics
+./a.out

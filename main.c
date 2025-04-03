@@ -7,30 +7,36 @@
 #define	ROW_SIZE 3
 #define	COL_SIZE 3
 
-void	find_captures(int *initial, int pos)
+void	find_captures(int *initial, int *captures, int pos)
 {
-
 	for (int i = 0; i < GRID_SIZE; i++)
 	{
 		// We found a 0	-> slot available
 
 		if (pos & (1 << i))
 		{
-	//		printf("ACTIVATED\n");
 
-			printf("\n");
+			//	Time to increment the capture int
 
-			if (i - 3 >= 0 && initial[i - 3] != 0)
-				printf("UP	->	%d\n", initial[i - 3]);
+			if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
+				*captures |= (1 << i);	
+			//	*captures |= (1 << (i - ROW_SIZE));	
+			//		printf("UP	->	%d\n", initial[i - ROW_SIZE]);
 				
-			if (i + 3 < 9 && initial[i + 3] != 0)
-				printf("DOWN	->	%d\n", initial[i + 3]);
+			if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
+				*captures |= (1 << i);	
+			//	*captures |= (1 << (i + ROW_SIZE));
+			//	printf("DOWN	->	%d\n", initial[i + ROW_SIZE]);
 		
-			if (i - 1 >= 0 && i % 3 > 0 && initial[i - 1] != 0)
-				printf("LEFT	->	%d\n", initial[i - 1]);
+			if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
+				*captures |= (1 << i);	
+			//	*captures |= (1 << (i - COL_SIZE));
+			//	printf("LEFT	->	%d\n", initial[i - 1]);
 
-			if (i + 1 < 9 && i % 3 < 2 && initial[i + 1] != 0)
-				printf("RIGHT	->	%d\n", initial[i + 1]);
+			if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
+				*captures |= (1 << i);	
+			//	*captures |= (1 << (i + COL_SIZE));
+			//	printf("RIGHT	->	%d\n", initial[i + 1]);
 		}
 	}
 
@@ -62,15 +68,24 @@ int main()
 {
 	int	ret;
     int depth;
+	int	captures;
 	int	initial[GRID_SIZE];
 
 	ret = 0;
+
+	captures = 0;
 
 	get_input(&depth, initial);
 
 	find_empty(initial, &ret);
 
-	find_captures(initial, ret);
+	find_captures(initial, &captures, ret);
+
+	for (int i = 0; i < GRID_SIZE; i++)
+	{
+		if (captures & (1 << i))
+			printf("%d	@	%d\n", initial[i], i);
+	}
 
 	printf("%d\n", ret);
 
