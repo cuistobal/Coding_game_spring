@@ -16,18 +16,20 @@ void	find_captures(int *initial, int pos)
 
 		if (pos & (1 << i))
 		{
-			printf("ACTIVATED\n");
-		
-			if (i - 3 >= 0)
+	//		printf("ACTIVATED\n");
+
+			printf("\n");
+
+			if (i - 3 >= 0 && initial[i - 3] != 0)
 				printf("UP	->	%d\n", initial[i - 3]);
 				
-			if (i + 3 < 9)
+			if (i + 3 < 9 && initial[i + 3] != 0)
 				printf("DOWN	->	%d\n", initial[i + 3]);
 		
-			if (i - 1 >= 0 && i % 3 > 0)
+			if (i - 1 >= 0 && i % 3 > 0 && initial[i - 1] != 0)
 				printf("LEFT	->	%d\n", initial[i - 1]);
 
-			if (i + 1 < 9 && i % 3 < 2)
+			if (i + 1 < 9 && i % 3 < 2 && initial[i + 1] != 0)
 				printf("RIGHT	->	%d\n", initial[i + 1]);
 		}
 	}
