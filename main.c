@@ -3,17 +3,14 @@
 #include <string.h>
 #include <stdbool.h>
 
-//#include "cdg.h"
-
-/*
-void	print_params(int *params, int depth)
+void	find_empty(int *initial, int *pos)
 {
-	printf("%d\n", depth);
-	for (int i =0; i < 9; i++)
-		printf("%d ", params[i]);
-	printf("\n");
+	for (int i = 0; i<9; i++)
+	{
+		if (initial[i] == 0)
+        	*pos |= (1 << i);
+	}
 }
-*/
 
 void	get_input(int *depth, int *initial)
 {
@@ -34,6 +31,8 @@ int main()
 	ret = 0;
 
 	get_input(&depth, initial);
+
+	find_empty(initial, &ret);
 
 //	print_params(initial, depth);
 
