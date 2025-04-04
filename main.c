@@ -1,20 +1,61 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #define GRID_SIZE 9
 #define	ROW_SIZE 3
 #define	COL_SIZE 3
 
+void print_bits(void *ptr, size_t num_bits)
+{
+    char buffer[256] = {0};
+
+    memcpy(buffer, ptr, (num_bits + 7) / 8);
+    for (size_t i = 0; i < num_bits; ++i)
+	{
+        size_t byte_offset = i / 8;
+        size_t bit_offset = i % 8;
+        if (i > 0 && i % 4 == 0)
+            printf(" ");
+        (buffer[byte_offset] & (1 << (7 - bit_offset))) ? printf("1") : printf("0");
+    }
+    printf("\n");
+}
+
+static void	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
+{
+	int	total = 0;
+
+	if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
+		*adjacent |= (1 << (i - ROW_SIZE));	
+	if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
+		*adjacent |= (1 << (i + ROW_SIZE));
+	if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
+		*adjacent |= (1 << (i - 1));
+	if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
+		*adjacent |= (1 << (i + 1));
+}
+
 void	find_captures(int *initial, int *captures, int pos)
 {
+	unsigned char	adjacent;
+
 	for (int i = 0; i < GRID_SIZE; i++)
 	{
 		// We found a 0	-> slot available
 
 		if (pos & (1 << i))
 		{
+			adjacent = 0;
+			check_adjacent_cells(initial, &adjacent, i);
+
+			print_bits(&adjacent, 8);
+
+			printf("%c	for	%d\n", adjacent, i);
+
+			/*
 
 			//	Time to increment the capture int
 
@@ -37,6 +78,7 @@ void	find_captures(int *initial, int *captures, int pos)
 				*captures |= (1 << i);	
 			//	*captures |= (1 << (i + COL_SIZE));
 			//	printf("RIGHT	->	%d\n", initial[i + 1]);
+			//	*/
 		}
 	}
 
