@@ -24,89 +24,104 @@ void print_bits(void *ptr, size_t num_bits)
     printf("\n");
 }
 
-static void	try_position(int *initial, unsigned char adjacent, int i)
+static void	try_position(int initial[ROW_SIZE][COL_SIZE], unsigned char adjacent, int index)
 {
 	int	sum = 0;
 
-	for (int j = 0; j < 9; j++)
+	printf("\n");
+	for (int i = 0; i < ROW_SIZE; i++)
 	{
-		if (adjacent & (1 << j))
-			sum += initial[j];
+		for (int j = 0; j < COL_SIZE; j++)
+		{
+			if (adjacent & (1 << (i * ROW_SIZE + j)))
+				sum += initial[i][j];
+			printf("%d ", initial[i][j]);	
+		}
+		printf("\n");
 	}
-	printf("SUM	->	%d\n", sum);
+	printf("\nSUM	->	%d\n", sum);
 }
 // This fucntion checks if we have at least 2 non 0 adjacent cells and increments
 // the buffer's value with those adjacent positions.
-static int	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
-{
-	int	count = 0;
+static int check_adjacent_cells(int initial[ROW_SIZE][COL_SIZE], unsigned char *adjacent, int index) {
+    int count = 0;
+    int row = index / ROW_SIZE;
+    int col = index % COL_SIZE;
 
-	if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
+    if (row > 0 && initial[row - 1][col] != 0)
 	{
-		*adjacent |= (1 << (i - ROW_SIZE));	
-		count++;
-	}
-	if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
+        *adjacent |= (1 << ((row - 1) * ROW_SIZE + col));
+        count++;
+    }
+    if (row < ROW_SIZE - 1 && initial[row + 1][col] != 0)
 	{
-		*adjacent |= (1 << (i + ROW_SIZE));
-		count++;
-	}
-	if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
+        *adjacent |= (1 << ((row + 1) * ROW_SIZE + col));
+        count++;
+    }
+    if (col > 0 && initial[row][col - 1] != 0)
 	{
-		*adjacent |= (1 << (i - 1));
-		count++;
-	}
-	if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
+        *adjacent |= (1 << (row * ROW_SIZE + (col - 1)));
+        count++;
+    }
+    if (col < COL_SIZE - 1 && initial[row][col + 1] != 0)
 	{
-		*adjacent |= (1 << (i + 1));
-		count++;
-	}
+        *adjacent |= (1 << (row * ROW_SIZE + (col + 1)));
+        count++;
+    }
 	return (count < 2) ? (*adjacent = '\0', count) : count;
 }
 
-void	find_captures(int *initial, int *captures, int pos)
+void	find_captures(int initial[ROW_SIZE][COL_SIZE], int *captures, int pos)
 {
-	unsigned char	adjacent[9] = {'\0'};
+	int				index;
+	unsigned char	adjacent[GRID_SIZE] = {'\0'};
 
-	for (int i = 0; i < GRID_SIZE; i++)
+	for (int i = 0; i < ROW_SIZE; i++)
 	{
 		// We found a 0	-> slot available
 
-		if (pos & (1 << i))
+		for (int j = 0; j < COL_SIZE; j++)
 		{
-			check_adjacent_cells(initial, &adjacent[i], i);
-
-			if (adjacent[i] != '\0')
+			index = i * ROW_SIZE + j;
+			if (pos & (1 << (i * ROW_SIZE + j)))
 			{
+				check_adjacent_cells(initial, &adjacent[index], index);
+
+				if (adjacent[index] != '\0')
+				{
 				// We've got at least to valid neighbours
 
-				try_position(initial, i, adjacent[i]);
+					try_position(initial, index, adjacent[index]);
 
-				printf("@ %d	->	", i);
-				print_bits(&adjacent[i], 8);
+					printf("@ %d	->	", i);
+					print_bits(&adjacent[i], 8);
+				}
 			}
 		}
 	}
 }
 
 //Find empty spaces within the the current grid
-void	find_empty(int *initial, int *pos)
+void	find_empty(int initial[3][3], int *pos)
 {
-	for (int i = 0; i < GRID_SIZE; i++)
+	for (int i = 0; i < ROW_SIZE; i++)
 	{
-		if (initial[i] == 0)
-        	*pos |= (1 << i);
+		for (int j = 0; j < COL_SIZE; j++)
+		{
+			if (initial[i][j] == 0)
+        		*pos |= (1 << i);
+		}
 	}
 }
 
 //Gets input from the stdin
-void	get_input(int *depth, int *initial)
+void	get_input(int *depth, int initial[3][3])
 {
     scanf("%d", depth);
 	for (int i = 0; i < ROW_SIZE; i++)
 	{
         for (int j = 0; j < COL_SIZE; j++) 
-            scanf("%d", &initial[i * COL_SIZE + j]);
+            scanf("%d", &initial[i][j]);
     }
 }
 
@@ -116,7 +131,7 @@ int main(void)
 	int	ret;
     int depth;
 	int	captures;
-	int	initial[GRID_SIZE];
+	int	initial[ROW_SIZE][COL_SIZE];
 
 	ret = 0;
 
@@ -128,10 +143,13 @@ int main(void)
 
 	find_captures(initial, &captures, ret);
 
-	for (int i = 0; i < GRID_SIZE; i++)
+	for (int i = 0; i < ROW_SIZE; i++)
 	{
-		if (captures & (1 << i))
-			printf("%d	@	%d\n", initial[i], i);
+		for (int j = 0; j < ROW_SIZE; j++)
+		{
+			if (captures & (1 << (i * ROW_SIZE + j)))
+				printf("%d	@	%d\n", initial[i][j], i);
+		}
 	}
 
 	printf("%d\n", ret);
