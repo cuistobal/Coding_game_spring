@@ -137,11 +137,11 @@ static void	check_cell(int grid[ROW_SIZE][COL_SIZE], int *count, int row, int co
 	if (grid[row][col] == 0)
 	{
 		//UP
-		*count += check_position(grid, row + 1, col);
+		*count += check_position(grid, row - 1, col);
 		//RIGTH
 		*count += check_position(grid, row, col + 1);
 		//DOWN
-		*count += check_position(grid, row - 1, col);
+		*count += check_position(grid, row + 1, col);
 		//LEFT
 		*count += check_position(grid, row, col - 1);
 	}
