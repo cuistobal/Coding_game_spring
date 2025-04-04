@@ -24,38 +24,49 @@ void print_bits(void *ptr, size_t num_bits)
     printf("\n");
 }
 
-static void	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
+static void	try_position(int *initial, unsigned char adjacent, int i)
 {
-	unsigned char	mask = 0;
-	int				count = 0;
+	int	sum = 0;
+
+	for (int j = 0; j < 9; j++)
+	{
+		if (adjacent & (1 << j))
+			sum += initial[j];
+	}
+	printf("SUM	->	%d\n", sum);
+}
+// This fucntion checks if we have at least 2 non 0 adjacent cells and increments
+// the buffer's value with those adjacent positions.
+static int	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
+{
+	int	count = 0;
 
 	if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
 	{
-		mask |= (1 << (i - ROW_SIZE));	
+		*adjacent |= (1 << (i - ROW_SIZE));	
 		count++;
 	}
 	if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
 	{
-		mask |= (1 << (i + ROW_SIZE));
+		*adjacent |= (1 << (i + ROW_SIZE));
 		count++;
 	}
 	if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
 	{
-		mask |= (1 << (i - 1));
+		*adjacent |= (1 << (i - 1));
 		count++;
 	}
 	if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
 	{
-		mask |= (1 << (i + 1));
+		*adjacent |= (1 << (i + 1));
 		count++;
 	}
-	if (count > 1)
-		*adjacent |= mask;
+	return (count < 2) ? (*adjacent = '\0', count) : count;
 }
 
 void	find_captures(int *initial, int *captures, int pos)
 {
-		unsigned char	adjacent;
+	unsigned char	adjacent[9] = {'\0'};
 
 	for (int i = 0; i < GRID_SIZE; i++)
 	{
@@ -63,16 +74,19 @@ void	find_captures(int *initial, int *captures, int pos)
 
 		if (pos & (1 << i))
 		{
-			adjacent = 0;
-			check_adjacent_cells(initial, &adjacent, i);
-			if (adjacent != '\0')
+			check_adjacent_cells(initial, &adjacent[i], i);
+
+			if (adjacent[i] != '\0')
 			{
+				// We've got at least to valid neighbours
+
+				try_position(initial, i, adjacent[i]);
+
 				printf("@ %d	->	", i);
-				print_bits(&adjacent, 8);
+				print_bits(&adjacent[i], 8);
 			}
 		}
 	}
-
 }
 
 //Find empty spaces within the the current grid
@@ -97,7 +111,7 @@ void	get_input(int *depth, int *initial)
 }
 
 //Main
-int main()
+int main(void)
 {
 	int	ret;
     int depth;
