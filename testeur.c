@@ -5,7 +5,12 @@
 #include <sys/wait.h>
 #include <string.h>
 
-void run_executable_with_test_file(const char *executable_path, FILE *test_file) {
+#define START_TESTS "============================= START TEST ==============================\n"
+#define END_TESTS "============================= END TEST ==============================\n"
+#define NEXT_TESTS "============================= NEXT TEST ==============================\n"
+
+void run_executable_with_test_file(const char *executable_path, FILE *test_file)
+{
     int status;
     pid_t pid;
     char line[256];
@@ -14,13 +19,15 @@ void run_executable_with_test_file(const char *executable_path, FILE *test_file)
 
     // Créer un fichier temporaire pour chaque test
     int temp_fd = mkstemp(temp_filename);
-    if (temp_fd == -1) {
+    
+	if (temp_fd == -1)
+	{
         perror("Erreur lors de la création du fichier temporaire");
         exit(EXIT_FAILURE);
     }
-    temp_file = fdopen(temp_fd, "w+");
+    
+	temp_file = fdopen(temp_fd, "w+");
 
-    // Lire le fichier de test ligne par ligne
     while (fgets(line, sizeof(line), test_file))
 	{
         if (strcmp(line, "\n") == 0) 
@@ -60,7 +67,7 @@ void run_executable_with_test_file(const char *executable_path, FILE *test_file)
             } 
 			else
                 exit(EXIT_FAILURE);
-			printf("===============NEXT TEST====================\n");
+			printf(NEXT_TESTS);
         } 
 		else
             fputs(line, temp_file);
@@ -89,9 +96,12 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    run_executable_with_test_file(executable_path, test_file);
+	printf(START_TESTS);
 
-    fclose(test_file);
+    run_executable_with_test_file(executable_path, test_file);
+	fclose(test_file);
+
+	printf(END_TESTS);
     
 	return EXIT_SUCCESS;
 }

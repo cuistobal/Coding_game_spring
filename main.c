@@ -8,6 +8,8 @@
 #define	ROW_SIZE 3
 #define	COL_SIZE 3
 
+// TESTS && UTILS
+
 void print_bits(void *ptr, size_t num_bits)
 {
     char buffer[256] = {0};
@@ -23,6 +25,8 @@ void print_bits(void *ptr, size_t num_bits)
     }
     printf("\n");
 }
+
+// PROGRAMM
 
 static void	try_position(int initial[ROW_SIZE][COL_SIZE], unsigned char adjacent, int index)
 {
