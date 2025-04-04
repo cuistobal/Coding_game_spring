@@ -8,6 +8,17 @@
 #define	ROW_SIZE 3
 #define	COL_SIZE 3
 
+#define ADJACENT 4
+#define RINDEX 1
+#define CINDEX 1
+
+#define UP 0
+#define LEFT 1
+#define DOWN 2
+#define RIGHT 3
+
+static const int	neighbours[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
 // TESTS && UTILS
 
 void print_bits(void *ptr, size_t num_bits)
@@ -26,59 +37,86 @@ void print_bits(void *ptr, size_t num_bits)
     printf("\n");
 }
 
-// PROGRAMM
-
-static void	try_position(int initial[ROW_SIZE][COL_SIZE], unsigned char adjacent, int index)
+void	print_grid(int initial[ROW_SIZE][COL_SIZE])
 {
-	int	sum = 0;
-
 	printf("\n");
 	for (int i = 0; i < ROW_SIZE; i++)
 	{
 		for (int j = 0; j < COL_SIZE; j++)
-		{
-			if (adjacent & (1 << (i * ROW_SIZE + j)))
-				sum += initial[i][j];
-			printf("%d ", initial[i][j]);	
-		}
-		printf("\n");
+			j == 2 ? printf("%d\n", initial[i][j]) : printf("%d ", initial[i][j]);	
 	}
-	printf("\nSUM	->	%d\n", sum);
+	printf("\n");
 }
-// This fucntion checks if we have at least 2 non 0 adjacent cells and increments
-// the buffer's value with those adjacent positions.
-static int check_adjacent_cells(int initial[ROW_SIZE][COL_SIZE], unsigned char *adjacent, int index) {
-    int count = 0;
+
+// PROGRAMM
+
+
+/*
+static void	modify_grid(int initial[ROW_SIZE][COL_SIZE], int index, uint8_t adjacent)
+{
+	int	sum = 0;
+
+	for (int i = 0; i < ADJACENT; i++)
+	{
+		if (adjacent & (1 << i))
+			sum += initial[] 
+	}
+}
+*/
+
+static void modify_grid(int initial[ROW_SIZE][COL_SIZE], int index, uint8_t adjacent)
+{
+    int sum = 0;
     int row = index / ROW_SIZE;
     int col = index % COL_SIZE;
 
+    for (int i = 0; i < ADJACENT; i++) 
+	{
+    	if (adjacent & (1 << i)) 
+		{
+            int newRow = row + neighbours[i][0];
+            int newCol = col + neighbours[i][1];
+
+            if (newRow >= 0 && newRow < ROW_SIZE && newCol >= 0 && newCol < COL_SIZE)
+                sum += initial[newRow][newCol];
+        }
+    }
+
+    initial[row][col] = sum;
+}
+
+static void	activate_bits(void *container, int bits)
+{
+	*(int *)container |= bits;
+}
+
+// This fucntion checks if we have at least 2 non 0 adjacent cells and increments
+// the buffer's value with those adjacent positions.
+static void check_adjacent_cells(int initial[ROW_SIZE][COL_SIZE], uint8_t *adjacent, int index) 
+{
+    int 	row = index / ROW_SIZE;
+    int 	col = index % COL_SIZE;
+	
+	// UP
     if (row > 0 && initial[row - 1][col] != 0)
-	{
-        *adjacent |= (1 << ((row - 1) * ROW_SIZE + col));
-        count++;
-    }
-    if (row < ROW_SIZE - 1 && initial[row + 1][col] != 0)
-	{
-        *adjacent |= (1 << ((row + 1) * ROW_SIZE + col));
-        count++;
-    }
-    if (col > 0 && initial[row][col - 1] != 0)
-	{
-        *adjacent |= (1 << (row * ROW_SIZE + (col - 1)));
-        count++;
-    }
+		activate_bits(adjacent, UP | (1 << 4));
+	// LEFT
+	if (row < ROW_SIZE - 1 && initial[row + 1][col] != 0)
+		activate_bits(adjacent, LEFT | (1 << 5));
+    // DOWN
+	if (col > 0 && initial[row][col - 1] != 0)
+		activate_bits(adjacent, DOWN | (1 << 6));
+	// RIGHT
     if (col < COL_SIZE - 1 && initial[row][col + 1] != 0)
-	{
-        *adjacent |= (1 << (row * ROW_SIZE + (col + 1)));
-        count++;
-    }
-	return (count < 2) ? (*adjacent = '\0', count) : count;
+		activate_bits(adjacent, RIGHT | (1 << 7));
+	if (*adjacent < 15) 
+		*adjacent = 0;
 }
 
 void	find_captures(int initial[ROW_SIZE][COL_SIZE], int *captures, int pos)
 {
 	int				index;
-	unsigned char	adjacent[GRID_SIZE] = {'\0'};
+	uint8_t			adjacent;
 
 	for (int i = 0; i < ROW_SIZE; i++)
 	{
@@ -86,19 +124,33 @@ void	find_captures(int initial[ROW_SIZE][COL_SIZE], int *captures, int pos)
 
 		for (int j = 0; j < COL_SIZE; j++)
 		{
-			index = i * ROW_SIZE + j;
-			if (pos & (1 << (i * ROW_SIZE + j)))
+			index = (i * ROW_SIZE) + j;
+			printf("%d\n", index);
+			if (pos & (1 << index))
 			{
-				check_adjacent_cells(initial, &adjacent[index], index);
+				adjacent = 0;
 
-				if (adjacent[index] != '\0')
+				printf("index -> %d\n", pos & (1 << index));
+				
+				check_adjacent_cells(initial, &adjacent, index);
+
+				if (adjacent != 0)
 				{
-				// We've got at least to valid neighbours
+					
+				// We've got at least two valid neighbours
+					
+					print_grid(initial);
 
-					try_position(initial, index, adjacent[index]);
+				//	try_position(initial, index, adjacent);
 
+					modify_grid(initial, pos & (1 << index), adjacent);
+
+					print_grid(initial);
+
+/*
 					printf("@ %d	->	", i);
 					print_bits(&adjacent[i], 8);
+*/
 				}
 			}
 		}
@@ -113,8 +165,9 @@ void	find_empty(int initial[3][3], int *pos)
 		for (int j = 0; j < COL_SIZE; j++)
 		{
 			if (initial[i][j] == 0)
-        		*pos |= (1 << i);
+        		*pos |= (1 << (i * ROW_SIZE + j));
 		}
+		print_bits(pos, i * 4 + 4);
 	}
 }
 
@@ -144,6 +197,8 @@ int main(void)
 	get_input(&depth, initial);
 
 	find_empty(initial, &ret);
+
+	print_bits(&ret, 64);
 
 	find_captures(initial, &captures, ret);
 
