@@ -26,21 +26,36 @@ void print_bits(void *ptr, size_t num_bits)
 
 static void	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
 {
-	int	total = 0;
+	unsigned char	mask = 0;
+	int				count = 0;
 
 	if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
-		*adjacent |= (1 << (i - ROW_SIZE));	
+	{
+		mask |= (1 << (i - ROW_SIZE));	
+		count++;
+	}
 	if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
-		*adjacent |= (1 << (i + ROW_SIZE));
+	{
+		mask |= (1 << (i + ROW_SIZE));
+		count++;
+	}
 	if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
-		*adjacent |= (1 << (i - 1));
+	{
+		mask |= (1 << (i - 1));
+		count++;
+	}
 	if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
-		*adjacent |= (1 << (i + 1));
+	{
+		mask |= (1 << (i + 1));
+		count++;
+	}
+	if (count > 1)
+		*adjacent |= mask;
 }
 
 void	find_captures(int *initial, int *captures, int pos)
 {
-	unsigned char	adjacent;
+		unsigned char	adjacent;
 
 	for (int i = 0; i < GRID_SIZE; i++)
 	{
@@ -50,35 +65,11 @@ void	find_captures(int *initial, int *captures, int pos)
 		{
 			adjacent = 0;
 			check_adjacent_cells(initial, &adjacent, i);
-
-			print_bits(&adjacent, 8);
-
-			printf("%c	for	%d\n", adjacent, i);
-
-			/*
-
-			//	Time to increment the capture int
-
-			if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
-				*captures |= (1 << i);	
-			//	*captures |= (1 << (i - ROW_SIZE));	
-			//		printf("UP	->	%d\n", initial[i - ROW_SIZE]);
-				
-			if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
-				*captures |= (1 << i);	
-			//	*captures |= (1 << (i + ROW_SIZE));
-			//	printf("DOWN	->	%d\n", initial[i + ROW_SIZE]);
-		
-			if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
-				*captures |= (1 << i);	
-			//	*captures |= (1 << (i - COL_SIZE));
-			//	printf("LEFT	->	%d\n", initial[i - 1]);
-
-			if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
-				*captures |= (1 << i);	
-			//	*captures |= (1 << (i + COL_SIZE));
-			//	printf("RIGHT	->	%d\n", initial[i + 1]);
-			//	*/
+			if (adjacent != '\0')
+			{
+				printf("@ %d	->	", i);
+				print_bits(&adjacent, 8);
+			}
 		}
 	}
 
