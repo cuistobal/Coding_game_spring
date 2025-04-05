@@ -94,7 +94,7 @@ static void	generateCombinations(t_queue *queue, int *nums, int start, int *comb
 {
     int sum = 0;
 
-    if (combLen > 0 && combLen <= DIRECTIONS)
+    if (combLen > 1 && combLen <= DIRECTIONS)
     {
         for (int i = 0; i < combLen; i++)
             sum += combination[i];
@@ -172,17 +172,20 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
     int captures = 0;
     int temp = 0;
 
-    for (int i = 0; i < DIRECTIONS; i++)
+	if (board[row][col] == 0)
 	{
-        temp = check_position(board, row + directions[i][IROW], col + directions[i][ICOL]); 
-		if (temp > 0)
+    	for (int i = 0; i < DIRECTIONS; i++)
 		{
-            sum += temp;
-            captures++;
-        }
+    	    temp = check_position(board, row + directions[i][IROW], col + directions[i][ICOL]); 
+			if (temp > 0)
+			{
+    	        sum += temp;
+    	        captures++;
+    	    }
+    	}
+	}
 
-    }
-
+//	printf("heuristic %d @ index %d\n", captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col), row * 3 + col);
     return captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col);
 }
 
@@ -216,7 +219,7 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int d
 	int	pos = 0;
 	int sum = 0;
     t_move	temp;
-    t_move	moves[GRID_SIZE];
+    t_move	moves[GRID_SIZE] = {0};
     
 	if (depth > 0)
 	{
@@ -226,11 +229,16 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int d
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
-	        moves[i].priority = evaluate_capture(board, row, col);
+//			if (board[row][col] == 0)
+//			{
+       		moves[i].priority = evaluate_capture(board, row, col);
 			if (moves[i].priority > CAP_HEURISTIC)
+			{
+				printf("heuritic = %d\n", moves[i].priority);
 				explore(moves[i].moves, board, row, col);
-	    }
-
+    		}
+//			}
+		}
 		//Priority queue based on the possibility to capture with the current
 		//state of the board
 	
