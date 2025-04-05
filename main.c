@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define COMBINATIONS 256
+
 #define GRID_SIZE 9
 #define ROW_SIZE 3
 #define COL_SIZE 3
@@ -19,7 +21,15 @@
 #define IROW 0
 #define ICOL 1
 
+#define COMBINATIONS 256
+
 #define CAP_HEURISTIC 10
+
+typedef struct queue
+{
+    int indexes[4];
+    int sum;
+} t_queue;
 
 typedef struct move
 {
@@ -101,7 +111,7 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
             sum += temp;
             captures++;
         }
-		printf("Sum %d for %d captures\n", sum, captures);
+//		printf("Sum %d for %d captures\n", sum, captures);
     }
 
     return sum <= 6 ? captures * CAP_HEURISTIC + sum : 0;
@@ -138,10 +148,11 @@ static inline long hash(int board[ROW_SIZE][COL_SIZE])
 		for (int j = 0; j < COL_SIZE; j++)
 			ret = ret * 10 + board[i][j];
 	}
+	printf("%ld\n", ret % HASH);
 	return ret;
 }
 //
-static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
+static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int depth)
 {
     int row;
     int col;
@@ -152,16 +163,13 @@ static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
     
 	if (depth > 0)
 	{
-		printf("\n");
 	    for (int i = 0; i < GRID_SIZE; i++)
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
 	        moves[i].priority = evaluate_capture(board, row, col);
 	        moves[i].index = i;
-			printf("%d ", moves[i].priority);
 	    }
-		printf("\n");
 
 	    // Sort moves based on priority (simple bubble sort for demonstration)
     
@@ -175,11 +183,11 @@ static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
 	        if (is_safe(board, &pos, &sum))
 			{
 	            print_grid(board);
-	            recursion(board, count, depth - 1);
+	            recursion(board, count, ret, depth - 1);
 	        }
 	    }
 	}
-	return (hash(board));
+	*ret = (*ret + hash(board)) % HASH; 
 }
 
 //
@@ -205,11 +213,40 @@ int main(void)
 
     print_grid(board);
 
-    ret += recursion(board, &count, depth) % HASH;
+    recursion(board, &count, &ret, depth);
 
     print_grid(board);
 
-    printf("%d\n", count);
+    printf("%d\n", ret);
 
     return 0;
 }
+
+/*
+
+// Function to generate combinations
+void	generateCombinations(t_queue *queue, int *nums, int len, int start, int *combination, int *originalIndexes, int combLen, int *queueIndex)
+{
+    int sum = 0;
+
+    if (combLen > 0 && combLen <= 4)
+    {
+        for (int i = 0; i < combLen; i++)
+            sum += combination[i];
+        if (sum < MAX)
+        {
+            queue[*queueIndex].sum = sum;
+            memcpy(queue[*queueIndex].indexes, originalIndexes, sizeof(int) * len);
+            (*queueIndex)++;
+        }
+    }
+
+    for (int i = start; i < len; i++)
+    {
+        combination[combLen] = nums[i];
+        originalIndexes[i] = nums[i];
+        generateCombinations(queue, nums, len, i + 1, combination, originalIndexes, combLen + 1, queueIndex);
+        originalIndexes[i] = 0;
+	}
+}
+*/
