@@ -137,10 +137,10 @@ static void	explore(t_queue *queue, int board[ROW_SIZE][COL_SIZE], int row, int 
 	{
 		if (queue[i].sum != 0)
 		{
-		printf("%d ", queue[i].sum);
-		for (int j = 0; j < 4; j++)
-			printf(" %d", queue[i].indexes[j]);
-		printf("\n");
+			printf("%d ", queue[i].sum);
+			for (int j = 0; j < 4; j++)
+				printf(" %d", queue[i].indexes[j]);
+			printf("\n");
 		}
 	}
 }
@@ -186,7 +186,11 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
 	}
 
 //	printf("heuristic %d @ index %d\n", captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col), row * 3 + col);
-    return captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col);
+
+	if (captures > 1)
+		return (sum <= 6) ? (row + col + CAP_HEURISTIC + captures) : 0;
+	return board[row][col] == 0 ? (GRID_SIZE - (row + col)) : 0;
+   // return captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col);
 }
 
 //
@@ -248,11 +252,10 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *ret, int depth)
 	        
 // Changer ce bloc -> il faut remplcaer les cases en suivant la queue
 
-			if (is_safe(board, &pos))
-			{
-	            print_grid(board);
-	            recursion(board, ret, depth - 1);
-	        }
+			if (!is_safe(board, &pos))
+				return ;
+	        print_grid(board);
+	        recursion(board, ret, depth - 1);
 	    }
 	}
 	*ret = (*ret + hash(board)) % HASH; 
