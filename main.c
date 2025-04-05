@@ -1,140 +1,252 @@
-#include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
+#define COMBINATIONS 256
+
 #define GRID_SIZE 9
-#define	ROW_SIZE 3
-#define	COL_SIZE 3
+#define ROW_SIZE 3
+#define COL_SIZE 3
 
-void print_bits(void *ptr, size_t num_bits)
+#define HASH 1073741824
+
+#define MAX 6
+#define STOP -1
+
+#define DIRECTIONS 4
+#define ITOT 2
+#define IROW 0
+#define ICOL 1
+
+#define COMBINATIONS 256
+
+#define CAP_HEURISTIC 10
+
+typedef struct queue
 {
-    char buffer[256] = {0};
+    int indexes[4];
+    int sum;
+} t_queue;
 
-    memcpy(buffer, ptr, (num_bits + 7) / 8);
-    for (size_t i = 0; i < num_bits; ++i)
+typedef struct move
+{
+    int priority;
+    int index;
+}	t_move;
+
+static const int directions[DIRECTIONS][ITOT] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+
+//
+void print_grid(int initial[ROW_SIZE][COL_SIZE])
+{
+    printf("\n");
+    for (int i = 0; i < ROW_SIZE; i++)
 	{
-        size_t byte_offset = i / 8;
-        size_t bit_offset = i % 8;
-        if (i > 0 && i % 4 == 0)
-            printf(" ");
-        (buffer[byte_offset] & (1 << (7 - bit_offset))) ? printf("1") : printf("0");
+        for (int j = 0; j < COL_SIZE; j++)
+            j == 2 ? printf("%d\n", initial[i][j]) : printf("%d ", initial[i][j]);
     }
     printf("\n");
 }
 
-static void	try_position(int *initial, unsigned char adjacent, int i)
+//
+int compare(const void *a, const void *b)
 {
-	int	sum = 0;
-
-	for (int j = 0; j < 9; j++)
-	{
-		if (adjacent & (1 << j))
-			sum += initial[j];
-	}
-	printf("SUM	->	%d\n", sum);
-}
-// This fucntion checks if we have at least 2 non 0 adjacent cells and increments
-// the buffer's value with those adjacent positions.
-static int	check_adjacent_cells(int *initial, unsigned char *adjacent, int i)
-{
-	int	count = 0;
-
-	if (i - ROW_SIZE >= 0 && initial[i - ROW_SIZE] != 0)
-	{
-		*adjacent |= (1 << (i - ROW_SIZE));	
-		count++;
-	}
-	if (i + ROW_SIZE < GRID_SIZE && initial[i + ROW_SIZE] != 0)
-	{
-		*adjacent |= (1 << (i + ROW_SIZE));
-		count++;
-	}
-	if (i - 1 >= 0 && i % COL_SIZE > 0 && initial[i - 1] != 0)
-	{
-		*adjacent |= (1 << (i - 1));
-		count++;
-	}
-	if (i + 1 < GRID_SIZE && i % COL_SIZE < 2 && initial[i + 1] != 0)
-	{
-		*adjacent |= (1 << (i + 1));
-		count++;
-	}
-	return (count < 2) ? (*adjacent = '\0', count) : count;
+    t_move *moveA = (t_move *)a;
+    t_move *moveB = (t_move *)b;
+    return moveB->priority - moveA->priority;
 }
 
-void	find_captures(int *initial, int *captures, int pos)
+//
+static inline int check_position(int grid[ROW_SIZE][COL_SIZE], int row, int col) 
 {
-	unsigned char	adjacent[9] = {'\0'};
+    if (row >= 0 && row < ROW_SIZE && col >= 0 && col < COL_SIZE)
+        return grid[row][col];
+    return 0;
+}
 
-	for (int i = 0; i < GRID_SIZE; i++)
+//
+static inline void captured(int *board, int *sum, int *captures, int temp) 
+{
+
+    *sum += temp;
+    (*captures)++;
+    *board = 0;
+}
+
+//
+static bool capture(int board[ROW_SIZE][COL_SIZE], int *sum, int row, int col) 
+{
+    int new_row;
+    int new_col;
+    int temp = 0;
+    int captures = 0;
+
+    for (int i = 0; i < 4; i++)
 	{
-		// We found a 0	-> slot available
+        new_row = row + directions[i][IROW];
+        new_col = col + directions[i][ICOL];
+        temp = check_position(board, new_row, new_col);
+        if (temp > 0 && *sum + temp <= MAX) 
+            captured(&board[new_row][new_col], sum, &captures, temp);
+    }
 
-		if (pos & (1 << i))
+    return (captures > 1);
+}
+
+//
+static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
+{
+    int sum = 0;
+    int captures = 0;
+    int temp = 0;
+
+    for (int i = 0; i < DIRECTIONS; i++)
+	{
+        temp = check_position(board, row + directions[i][IROW], col + directions[i][ICOL]);
+        if (temp > 0)
 		{
-			check_adjacent_cells(initial, &adjacent[i], i);
+            sum += temp;
+            captures++;
+        }
+//		printf("Sum %d for %d captures\n", sum, captures);
+    }
 
-			if (adjacent[i] != '\0')
-			{
-				// We've got at least to valid neighbours
-
-				try_position(initial, i, adjacent[i]);
-
-				printf("@ %d	->	", i);
-				print_bits(&adjacent[i], 8);
-			}
-		}
-	}
+    return sum <= 6 ? captures * CAP_HEURISTIC + sum : 0;
 }
 
-//Find empty spaces within the the current grid
-void	find_empty(int *initial, int *pos)
+//
+static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
 {
-	for (int i = 0; i < GRID_SIZE; i++)
+    int row = *pos / COL_SIZE;
+    int col = *pos % COL_SIZE;
+    int save[ROW_SIZE][COL_SIZE];
+
+    if (board[row][col] == 0)
 	{
-		if (initial[i] == 0)
-        	*pos |= (1 << i);
-	}
+        memcpy(save, board, sizeof(int) * GRID_SIZE);
+        if (capture(board, sum, row, col))
+            board[row][col] = *sum;
+        else
+		{
+            memcpy(board, save, sizeof(int) * GRID_SIZE);
+            board[row][col] = 1;
+        }
+        return true;
+    }
+    return false;
 }
 
-//Gets input from the stdin
-void	get_input(int *depth, int *initial)
+static inline long hash(int board[ROW_SIZE][COL_SIZE])
 {
-    scanf("%d", depth);
+	long ret = 0;
+
 	for (int i = 0; i < ROW_SIZE; i++)
 	{
-        for (int j = 0; j < COL_SIZE; j++) 
-            scanf("%d", &initial[i * COL_SIZE + j]);
+		for (int j = 0; j < COL_SIZE; j++)
+			ret = ret * 10 + board[i][j];
+	}
+	printf("%ld\n", ret % HASH);
+	return ret;
+}
+//
+static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int depth)
+{
+    int row;
+    int col;
+	int	pos = 0;
+	int sum = 0;
+    t_move	temp;
+    t_move	moves[GRID_SIZE];
+    
+	if (depth > 0)
+	{
+	    for (int i = 0; i < GRID_SIZE; i++)
+		{
+	        row = i / COL_SIZE;
+	        col = i % COL_SIZE;
+	        moves[i].priority = evaluate_capture(board, row, col);
+	        moves[i].index = i;
+	    }
+
+	    // Sort moves based on priority (simple bubble sort for demonstration)
+    
+		qsort(moves, GRID_SIZE, sizeof(t_move), compare);
+
+	    // Try captures in order of priority
+	    for (int i = 0; i < GRID_SIZE; i++)
+		{
+	        pos = moves[i].index;
+	
+	        if (is_safe(board, &pos, &sum))
+			{
+	            print_grid(board);
+	            recursion(board, count, ret, depth - 1);
+	        }
+	    }
+	}
+	*ret = (*ret + hash(board)) % HASH; 
+}
+
+//
+void get_input(int *depth, int initial[ROW_SIZE][COL_SIZE])
+{
+    scanf("%d", depth);
+    for (int i = 0; i < ROW_SIZE; i++)
+	{
+        for (int j = 0; j < COL_SIZE; j++)
+            scanf("%d", &initial[i][j]);
     }
 }
 
-//Main
+//
 int main(void)
 {
-	int	ret;
-    int depth;
-	int	captures;
-	int	initial[GRID_SIZE];
+	int	ret = 0;
+    int count = 0;
+    int depth = 0;
+    int board[ROW_SIZE][COL_SIZE] = {0};
 
-	ret = 0;
+    get_input(&depth, board);
 
-	captures = 0;
+    print_grid(board);
 
-	get_input(&depth, initial);
+    recursion(board, &count, &ret, depth);
 
-	find_empty(initial, &ret);
+    print_grid(board);
 
-	find_captures(initial, &captures, ret);
-
-	for (int i = 0; i < GRID_SIZE; i++)
-	{
-		if (captures & (1 << i))
-			printf("%d	@	%d\n", initial[i], i);
-	}
-
-	printf("%d\n", ret);
+    printf("%d\n", ret);
 
     return 0;
 }
+
+/*
+
+// Function to generate combinations
+void	generateCombinations(t_queue *queue, int *nums, int len, int start, int *combination, int *originalIndexes, int combLen, int *queueIndex)
+{
+    int sum = 0;
+
+    if (combLen > 0 && combLen <= 4)
+    {
+        for (int i = 0; i < combLen; i++)
+            sum += combination[i];
+        if (sum < MAX)
+        {
+            queue[*queueIndex].sum = sum;
+            memcpy(queue[*queueIndex].indexes, originalIndexes, sizeof(int) * len);
+            (*queueIndex)++;
+        }
+    }
+
+    for (int i = start; i < len; i++)
+    {
+        combination[combLen] = nums[i];
+        originalIndexes[i] = nums[i];
+        generateCombinations(queue, nums, len, i + 1, combination, originalIndexes, combLen + 1, queueIndex);
+        originalIndexes[i] = 0;
+	}
+}
+*/
