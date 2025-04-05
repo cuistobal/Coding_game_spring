@@ -1,4 +1,3 @@
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -8,8 +7,6 @@
 #define GRID_SIZE 9
 #define ROW_SIZE 3
 #define COL_SIZE 3
-
-#define HASH 1073741824
 
 #define MAX 6
 #define STOP -1
@@ -28,18 +25,6 @@ typedef struct move
 }	t_move;
 
 static const int directions[DIRECTIONS][ITOT] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
-
-//
-void print_grid(int initial[ROW_SIZE][COL_SIZE])
-{
-    printf("\n");
-    for (int i = 0; i < ROW_SIZE; i++)
-	{
-        for (int j = 0; j < COL_SIZE; j++)
-            j == 2 ? printf("%d\n", initial[i][j]) : printf("%d ", initial[i][j]);
-    }
-    printf("\n");
-}
 
 //
 int compare(const void *a, const void *b)
@@ -101,7 +86,6 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
             sum += temp;
             captures++;
         }
-		printf("Sum %d for %d captures\n", sum, captures);
     }
 
     return sum <= 6 ? captures * CAP_HEURISTIC + sum : 0;
@@ -129,19 +113,8 @@ static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
     return false;
 }
 
-static inline long hash(int board[ROW_SIZE][COL_SIZE])
-{
-	long ret = 0;
-
-	for (int i = 0; i < ROW_SIZE; i++)
-	{
-		for (int j = 0; j < COL_SIZE; j++)
-			ret = ret * 10 + board[i][j];
-	}
-	return ret;
-}
 //
-static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
+static void recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
 {
     int row;
     int col;
@@ -152,16 +125,13 @@ static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
     
 	if (depth > 0)
 	{
-		printf("\n");
 	    for (int i = 0; i < GRID_SIZE; i++)
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
 	        moves[i].priority = evaluate_capture(board, row, col);
 	        moves[i].index = i;
-			printf("%d ", moves[i].priority);
 	    }
-		printf("\n");
 
 	    // Sort moves based on priority (simple bubble sort for demonstration)
     
@@ -173,13 +143,9 @@ static long	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int depth)
 	        pos = moves[i].index;
 	
 	        if (is_safe(board, &pos, &sum))
-			{
-	            print_grid(board);
 	            recursion(board, count, depth - 1);
-	        }
 	    }
 	}
-	return (hash(board));
 }
 
 //
@@ -196,18 +162,13 @@ void get_input(int *depth, int initial[ROW_SIZE][COL_SIZE])
 //
 int main(void)
 {
-	int	ret = 0;
     int count = 0;
     int depth = 0;
     int board[ROW_SIZE][COL_SIZE] = {0};
 
     get_input(&depth, board);
 
-    print_grid(board);
-
-    ret += recursion(board, &count, depth) % HASH;
-
-    print_grid(board);
+    recursion(board, &count, depth);
 
     printf("%d\n", count);
 
