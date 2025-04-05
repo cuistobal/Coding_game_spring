@@ -35,7 +35,7 @@ typedef struct move
 {
     int 	index;
     int 	priority;
-	t_queue moves[256];
+	t_queue queue[256];
 }	t_move;
 
 static const int directions[DIRECTIONS][ITOT] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
@@ -190,8 +190,9 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
 }
 
 //
-static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
+static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos)
 {
+	int sum = 0;
     int row = *pos / COL_SIZE;
     int col = *pos % COL_SIZE;
     int save[ROW_SIZE][COL_SIZE];
@@ -199,8 +200,8 @@ static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
     if (board[row][col] == 0)
 	{
         memcpy(save, board, sizeof(int) * GRID_SIZE);
-        if (capture(board, sum, row, col))
-            board[row][col] = *sum;
+        if (capture(board, &sum, row, col))
+            board[row][col] = sum;
         else
 		{
             memcpy(board, save, sizeof(int) * GRID_SIZE);
@@ -212,12 +213,11 @@ static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
 }
 
 //
-static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int depth)
+static void	recursion(int board[ROW_SIZE][COL_SIZE], int *ret, int depth)
 {
     int row;
     int col;
 	int	pos = 0;
-	int sum = 0;
     t_move	temp;
     t_move	moves[GRID_SIZE] = {0};
     
@@ -229,16 +229,12 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int d
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
-//			if (board[row][col] == 0)
-//			{
-       		moves[i].priority = evaluate_capture(board, row, col);
+			moves[i].index = i;
+			moves[i].priority = evaluate_capture(board, row, col);
 			if (moves[i].priority > CAP_HEURISTIC)
-			{
-				printf("heuritic = %d\n", moves[i].priority);
-				explore(moves[i].moves, board, row, col);
-    		}
-//			}
+				explore(moves[i].queue, board, row, col);
 		}
+
 		//Priority queue based on the possibility to capture with the current
 		//state of the board
 	
@@ -249,10 +245,13 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int d
 	    for (int i = 0; i < GRID_SIZE; i++)
 		{
 	        pos = moves[i].index;
-	        if (is_safe(board, &pos, &sum))
+	        
+// Changer ce bloc -> il faut remplcaer les cases en suivant la queue
+
+			if (is_safe(board, &pos))
 			{
 	            print_grid(board);
-	            recursion(board, count, ret, depth - 1);
+	            recursion(board, ret, depth - 1);
 	        }
 	    }
 	}
@@ -274,7 +273,6 @@ void get_input(int *depth, int initial[ROW_SIZE][COL_SIZE])
 int main(void)
 {
 	int	ret = 0;
-    int count = 0;
     int depth = 0;
     int board[ROW_SIZE][COL_SIZE] = {0};
 
@@ -282,7 +280,7 @@ int main(void)
 
     print_grid(board);
 
-    recursion(board, &count, &ret, depth);
+    recursion(board, &ret, depth);
 
     print_grid(board);
 
