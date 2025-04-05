@@ -27,14 +27,15 @@
 
 typedef struct queue
 {
-    int indexes[4];
     int sum;
-} t_queue;
+    int indexes[4];
+}	t_queue;
 
 typedef struct move
 {
-    int priority;
-    int index;
+    int 	index;
+    int 	priority;
+	t_queue moves[256];
 }	t_move;
 
 static const int directions[DIRECTIONS][ITOT] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
@@ -50,6 +51,19 @@ void print_grid(int initial[ROW_SIZE][COL_SIZE])
     }
     printf("\n");
 }
+
+static inline long hash(int board[ROW_SIZE][COL_SIZE])
+{
+	long ret = 0;
+
+	for (int i = 0; i < ROW_SIZE; i++)
+	{
+		for (int j = 0; j < COL_SIZE; j++)
+			ret = ret * 10 + board[i][j];
+	}
+	return ret;
+}
+
 
 //
 int compare(const void *a, const void *b)
@@ -74,6 +88,61 @@ static inline void captured(int *board, int *sum, int *captures, int temp)
     *sum += temp;
     (*captures)++;
     *board = 0;
+}
+
+static void	generateCombinations(t_queue *queue, int *nums, int start, int *combination, int *originalIndexes, int combLen, int *queueIndex)
+{
+    int sum = 0;
+
+    if (combLen > 0 && combLen <= DIRECTIONS)
+    {
+        for (int i = 0; i < combLen; i++)
+            sum += combination[i];
+        if (sum < MAX)
+        {
+            queue[*queueIndex].sum = sum;
+            memcpy(queue[*queueIndex].indexes, originalIndexes, sizeof(int) * DIRECTIONS);
+            (*queueIndex)++;
+        }
+    }
+
+    for (int i = start; i < DIRECTIONS; i++)
+    {
+        combination[combLen] = nums[i];
+        originalIndexes[i] = nums[i];
+        generateCombinations(queue, nums, i + 1, combination, originalIndexes, combLen + 1, queueIndex);
+        originalIndexes[i] = 0;
+	}
+}
+
+//
+static void	explore(t_queue *queue, int board[ROW_SIZE][COL_SIZE], int row, int col)
+{
+	int	new_row;
+	int	new_col;
+	int queueIndex = 0;
+	int combinations[4];
+	int nums[DIRECTIONS];
+	int originalIndexes[DIRECTIONS] = {0};
+
+	for (int  i = 0; i < DIRECTIONS; i++)
+	{
+        new_row = row + directions[i][IROW];
+	    new_col = col + directions[i][ICOL];
+   		if (check_position(board, new_row, new_col)) 
+			nums[i] = board[new_row][new_col];
+    }
+	generateCombinations(queue, nums, 0, combinations, originalIndexes, 0, &queueIndex);
+	for (int i = 0; i < 256; i++)
+	{
+		if (queue[i].sum != 0)
+		{
+		printf("%d ", queue[i].sum);
+		for (int j = 0; j < 4; j++)
+			printf(" %d", queue[i].indexes[j]);
+		printf("\n");
+		}
+	}
 }
 
 //
@@ -105,13 +174,13 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
 
     for (int i = 0; i < DIRECTIONS; i++)
 	{
-        temp = check_position(board, row + directions[i][IROW], col + directions[i][ICOL]);
-        if (temp > 0)
+        temp = check_position(board, row + directions[i][IROW], col + directions[i][ICOL]); 
+		if (temp > 0)
 		{
             sum += temp;
             captures++;
         }
-//		printf("Sum %d for %d captures\n", sum, captures);
+
     }
 
     return captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col);
@@ -139,18 +208,6 @@ static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos, int *sum)
     return false;
 }
 
-static inline long hash(int board[ROW_SIZE][COL_SIZE])
-{
-	long ret = 0;
-
-	for (int i = 0; i < ROW_SIZE; i++)
-	{
-		for (int j = 0; j < COL_SIZE; j++)
-			ret = ret * 10 + board[i][j];
-	}
-	printf("%ld\n", ret % HASH);
-	return ret;
-}
 //
 static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int depth)
 {
@@ -163,23 +220,27 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *ret, int d
     
 	if (depth > 0)
 	{
+		//Find possible moves && assess their priority
+
 	    for (int i = 0; i < GRID_SIZE; i++)
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
 	        moves[i].priority = evaluate_capture(board, row, col);
-	        moves[i].index = i;
+			if (moves[i].priority > CAP_HEURISTIC)
+				explore(moves[i].moves, board, row, col);
 	    }
 
-	    // Sort moves based on priority (simple bubble sort for demonstration)
-    
+		//Priority queue based on the possibility to capture with the current
+		//state of the board
+	
 		qsort(moves, GRID_SIZE, sizeof(t_move), compare);
 
 	    // Try captures in order of priority
+	
 	    for (int i = 0; i < GRID_SIZE; i++)
 		{
 	        pos = moves[i].index;
-	
 	        if (is_safe(board, &pos, &sum))
 			{
 	            print_grid(board);
