@@ -114,7 +114,7 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
 //		printf("Sum %d for %d captures\n", sum, captures);
     }
 
-    return sum <= 6 ? captures * CAP_HEURISTIC + sum : 0;
+    return captures > 1 ? sum <= 6 ? (row + col + CAP_HEURISTIC) : 0 : (row + col);
 }
 
 //
