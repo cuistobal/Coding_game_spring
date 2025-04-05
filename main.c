@@ -1,7 +1,9 @@
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <string.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #define GRID_SIZE 9
@@ -18,27 +20,13 @@
 #define RIGHT 3
 
 #define MAX 6
+#define STOP -1
 
-static const int	neighbours[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+/******************************************************************************/
+/* ****************************** UTILITIES ********************************* */
+/******************************************************************************/
 
-// TESTS && UTILS
-
-void print_bits(void *ptr, size_t num_bits)
-{
-    char buffer[256] = {0};
-
-    memcpy(buffer, ptr, (num_bits + 7) / 8);
-    for (size_t i = 0; i < num_bits; ++i)
-	{
-        size_t byte_offset = i / 8;
-        size_t bit_offset = i % 8;
-        if (i > 0 && i % 4 == 0)
-            printf(" ");
-        (buffer[byte_offset] & (1 << (7 - bit_offset))) ? printf("1") : printf("0");
-    }
-    printf("\n");
-}
-
+//
 void	print_grid(int initial[ROW_SIZE][COL_SIZE])
 {
 	printf("\n");
@@ -50,8 +38,110 @@ void	print_grid(int initial[ROW_SIZE][COL_SIZE])
 	printf("\n");
 }
 
-// PROGRAMM
+/******************************************************************************/
+/* ****************************** PROGRAM *********************************** */
+/******************************************************************************/
 
+//
+static int	check_position(int grid[ROW_SIZE][COL_SIZE], int row, int col)
+{
+	if (row >= 0 && row < ROW_SIZE)
+	{
+		if (col >= 0 && col < COL_SIZE)
+			return grid[row][col];				
+	}
+	return 0;
+}
+
+//
+static inline void	captured(int *board, int *sum, int *captures, int temp)
+{
+	*sum += temp;
+	(*captures)++;
+	*board = 0;
+}
+
+//
+static bool capture(int board[ROW_SIZE][COL_SIZE], int *sum, int row, int col)
+{
+	int	temp = 0;
+	int	captures = 0;
+
+	temp = check_position(board, row - 1, col);
+	if (temp > 0 && *sum + temp <= MAX)
+		captured(&board[row - 1][col], sum, &captures, temp);
+	temp = check_position(board, row, col + 1);
+	if (temp > 0 && *sum + temp <= MAX)
+		captured(&board[row][col + 1], sum, &captures, temp);
+	temp = check_position(board, row + 1, col);
+	if (temp > 0 && *sum + temp <= MAX)
+		captured(&board[row + 1][col], sum, &captures, temp);
+	temp = check_position(board, row, col - 1);
+	if (temp > 0 && *sum + temp <= MAX)
+		captured(&board[row][col + 1], sum, &captures, temp);
+
+	printf("Scored %d for %d captures\n", *sum, captures);
+
+	return (captures > 1);
+}
+
+//
+static bool	is_safe(int board[ROW_SIZE][COL_SIZE], int *pos)
+{
+	int sum = 0;
+	int	row = *pos / ROW_SIZE;
+	int	col = *pos % COL_SIZE;
+	int	save[ROW_SIZE][COL_SIZE];
+
+	if (board[row][col] == 0)
+	{
+		memcpy(save, board, sizeof(int) * GRID_SIZE);
+		if (capture(board, &sum, row, col))
+			(board[row][col] = sum);
+		else
+		{
+			memcpy(board, save, sizeof(int) * GRID_SIZE);
+			(board[row][col] = 1);
+		}
+		(*pos)++;
+		return (true);
+	}
+	return (false);
+}
+
+/*
+static bool	capture_is_possible(int board[ROW_SIZE][COL_SIZE], int *pos)
+{
+			
+}
+*/
+
+//
+static void	recursion(int board[ROW_SIZE][COL_SIZE], int *count, int *pos, int depth)
+{
+	int		calls = 0;
+
+	if (depth < 0)
+	{
+		(*count)++;
+		return ;
+	}
+	while (*pos < GRID_SIZE)
+	{
+//		if (!capture_is_possible(board, pos))
+//		{
+			if (is_safe(board, pos))
+			{
+				print_grid(board);
+				recursion(board, count, pos, depth - 1);
+			}
+//		}
+		(*pos)++;
+	}
+
+	//No more possibilities -> time to stop
+	recursion(board, count, pos, STOP);
+}
 
 //Gets input from the stdin
 void	get_input(int *depth, int initial[ROW_SIZE][COL_SIZE])
@@ -65,150 +155,22 @@ void	get_input(int *depth, int initial[ROW_SIZE][COL_SIZE])
 }
 
 //
-static bool check_position(int grid[ROW_SIZE][COL_SIZE], int row, int col)
-{
-	if ((row >= 0 && row < ROW_SIZE) && (col >= 0 && col < COL_SIZE))
-		return (grid[row][col] != 0);
-	return (false);
-}
-
-//
-static void modify_grid(int grid[ROW_SIZE][COL_SIZE], int row, int col)
-{
-	int		sum = 0;
-	bool	flag = false;
-	
-	if (grid[row][col] == 0)
-	{
-		//UP
-		if (check_position(grid, row + 1, col))
-		{
-			if (sum + grid[row + 1][col] < MAX)
-			{
-				if (sum != 0)
-					flag = true;	
-				sum += grid[row +1][col];
-				grid[row + 1][col] = 0;
-			}
-		}
-		//RIGTH
-		if (check_position(grid, row, col + 1))
-		{
-			if (sum + grid[row][col + 1] < MAX)
-			{	
-				if (sum != 0)
-					flag = true;	
-				sum += grid[row][col + 1];
-				grid[row][col + 1] = 0;
-			}
-		}
-		//DOWN
-		if (check_position(grid, row - 1, col))
-		{
-			if (sum + grid[row - 1][col] < MAX)
-			{
-				if (sum != 0)
-					flag = true;	
-				sum += grid[row - 1][col];
-				grid[row - 1][col] = 0;
-			}
-		}
-		//LEFT
-		if (check_position(grid, row, col - 1))
-		{
-			if (sum + grid[row][col - 1] < MAX)
-			{
-				if (sum != 0)
-					flag = true;	
-				sum += grid[row][col - 1];
-				grid[row][col - 1] = 0;
-			}
-		}
-		if (flag)
-			grid[row][col] = sum;	
-	}
-}
-
-//
-static void	check_cell(int grid[ROW_SIZE][COL_SIZE], int *count, int row, int col)
-{
-	int sum = 0;
-
-	if (grid[row][col] == 0)
-	{
-		//UP
-		*count += check_position(grid, row - 1, col);
-		//RIGTH
-		*count += check_position(grid, row, col + 1);
-		//DOWN
-		*count += check_position(grid, row + 1, col);
-		//LEFT
-		*count += check_position(grid, row, col - 1);
-	}
-}
-
-//Main
 int main(void)
 {
-    int depth;
-	int ret = 0;
-	int count = 0;
-	int	initial[ROW_SIZE][COL_SIZE];
+	int	pos = 0;
+	int	count = 0;
+	int	depth = 0;
+	int	board[ROW_SIZE][COL_SIZE] = {0};
 
-	get_input(&depth, initial);
+	get_input(&depth, board);
 
-	print_grid(initial);
+	print_grid(board);
 
-	for (int c = 0; c < depth; c++)
-	{
-		for (int i = 0; i < GRID_SIZE; i++)
-		{
-			count = 0;
-			check_cell(initial, &count, i / ROW_SIZE, i % COL_SIZE);
-			if (count > 1)
-			{
-				modify_grid(initial, i / ROW_SIZE, i % COL_SIZE);
-				i = GRID_SIZE;
-			}
-		}	
-	}
+	recursion(board, &count, &pos, depth);
 
-	print_grid(initial);
+	print_grid(board);
 
-	printf("%d\n", ret);
+	printf("%d\n", count);
 
-    return 0;
+	return 0;
 }
-/*
-
-
-/home/chrleroy/Desktop/repos/42/so_long/sources/parsing/perform_flood_fill.c
-
-//I use this function to check if the position falls within the defined limtis
-static bool	check_position(int grid[ROW_SIZE][COL_SIZE], int row, int col)
-{
-	if (row >= 0 && row < ROW_SIZE)
-	{
-		if (col >= 0 && col < COL_SIZE)
-			return (grid[row][col] == 0);				
-	}
-	return (false);
-}
-
-//I use this function to append my connection_tree. Ultimately, this allows me
-//to identify wether we have a valid path or not.
-static void	flood_fill(int grid[ROW_SIZE][COL_SIZE], int *count, int row, int col)
-{
-	if (check_position(grid, row, col))
-	{
-		//UP
-		*count =+ flood_fill(grid, row + 1, col);
-		//RIGTH
-		*count =+ flood_fill(grid, row, col + 1);
-		//DOWN
-		*count =+ flood_fill(grid, row - 1, col);
-		//LEFT
-		*count =+ flood_fill(grid, row, col - 1);
-	}
-}
-*/
