@@ -133,16 +133,6 @@ static void	explore(t_queue *queue, int board[ROW_SIZE][COL_SIZE], int row, int 
 			nums[i] = board[new_row][new_col];
     }
 	generateCombinations(queue, nums, 0, combinations, originalIndexes, 0, &queueIndex);
-	for (int i = 0; i < 256; i++)
-	{
-		if (queue[i].sum != 0)
-		{
-			printf("%d ", queue[i].sum);
-			for (int j = 0; j < 4; j++)
-				printf(" %d", queue[i].indexes[j]);
-			printf("\n");
-		}
-	}
 }
 
 //
