@@ -41,24 +41,16 @@ static inline bool	check_index(int board[GRID_SIZE], int *value, int index)
 
 static inline int	get_value(int board[GRID_SIZE], int *count, int pos)
 {
-	(pos >= 0 && pos < 9) && (board[pos] > 0 && board[pos] < 6) ? board[pos] : -1;
+	return	(pos >= 0 && pos < 9) && (board[pos] > 0 && board[pos] < 6) ? ((*count)++, pos) : -1;
 }
 
 static void	explore(int new[][GRID_SIZE], int board[GRID_SIZE], int *index, int pos)
 {
 	int count = 0;
-	int	adjacent[4] = {-1};
+	int	neighbours[4] = {0};
 
 	for (int i = 0; i < 4; i++)
-	{
 		adjacent[i] = get_value(board, &count, pos + adjacent[i]);
-	}
-	if (count == 2)
-	{
-			
-	}
-	else if (count > 2)
-	{
 
 	}
 }
@@ -68,7 +60,6 @@ static void	recursion(int board[GRID_SIZE], int *ret, int depth)
 {
 	int	index = 0;
 	int	new[500][GRID_SIZE];
-	int	zeros[GRID_SIZE] = {0};
 
 	if (depth > 0)
 	{
@@ -76,10 +67,8 @@ static void	recursion(int board[GRID_SIZE], int *ret, int depth)
 		for (int  i = 0; i < GRID_SIZE; i++)
 		{
 			if (board[i] == 0)
-			{
 				explore(new + index, new[index], &index, i);
-			
-			}
+		}
 	}
 }
 //
