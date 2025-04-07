@@ -25,7 +25,7 @@
 
 #define CAP_HEURISTIC 10
 
-
+int	adjacent[4] = {-ROW_SIZE, 1, ROW_SIZE, -1};
 //
 void get_input(int *depth, int initial[GRID_SIZE])
 {
@@ -39,47 +39,30 @@ static inline bool	check_index(int board[GRID_SIZE], int *value, int index)
 	return (board[index] > 0 && board[index] < 6) ? (*value = board[index], true) : false;
 }
 
+static inline int	get_value(int board[GRID_SIZE], int *count, int pos)
+{
+	(pos >= 0 && pos < 9) && (board[pos] > 0 && board[pos] < 6) ? board[pos] : -1;
+}
+
 static void	explore(int new[][GRID_SIZE], int board[GRID_SIZE], int *index, int pos)
 {
-	int	sum = 0;
-	int	value = 0;
+	int count = 0;
+	int	adjacent[4] = {-1};
 
-	if (pos & 2 && pos != 4)
+	for (int i = 0; i < 4; i++)
 	{
-		if (pos > 4  && check_index(board, &sum, 7))
-		{	
-			if (pos == 6 && check_index(board, &value, 3))
-			{
-				memcpy(new[*index], board, sizeof(int) * GRID_SIZE);	
-				new[*index][7] = 0;	
-				new[*index][3] = 0;	
-				new[*index][pos] = value + sum;	
-				(*index)++;	
-				value = 0;
-				sum = 0;
-			}
-			if (pos == 8 && check_index(board, &value, 5))
-			{
-				memcpy(new[*index], board, sizeof(int) * GRID_SIZE);	
-				new[*index][5] = 0;	
-				new[*index][3] = 0;	
-				new[*index][pos] = value + sum;	
-				(*index)++;	
-				value = 0;
-				sum = 0;
-			}
-		}
-		else if ()
+		adjacent[i] = get_value(board, &count, pos + adjacent[i]);
 	}
-	else if (pos & 1)
+	if (count == 2)
 	{
-		//	3 max
+			
 	}
-	else
+	else if (count > 2)
 	{
-		//	4 max
+
 	}
 }
+
 //
 static void	recursion(int board[GRID_SIZE], int *ret, int depth)
 {
@@ -92,10 +75,11 @@ static void	recursion(int board[GRID_SIZE], int *ret, int depth)
 		memcpy(new[index], board, sizeof(int) * GRID_SIZE);
 		for (int  i = 0; i < GRID_SIZE; i++)
 		{
-			printf("%d ", new[index][i]);
 			if (board[i] == 0)
-				explore(new, board ,&index, i);
-		}
+			{
+				explore(new + index, new[index], &index, i);
+			
+			}
 	}
 }
 //
