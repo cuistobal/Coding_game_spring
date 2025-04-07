@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <stdbool.h>
+
+// Fonction pour vérifier si la somme des nombres non nuls est inférieure ou égale à 6
+static bool	check_sum(int *combinaison, int size)
+{
+	int sum = 0;
+
+    for (int i = 0; i < size; i++)
+	{
+        if (combinaison[i] > 0 && combinaison[i] < 6) 
+			sum += combinaison[i];
+    }
+    return sum <= 6;
+}
+
+// Fonction pour compter le nombre de chiffres non nuls
+static bool	valid_die(int *combinaison, int size)
+{
+    int count = 0;
+
+    for (int i = 0; i < size; i++)
+	{
+        if (combinaison[i] > 0 && combinaison[i] < 6) 
+			count++;
+    }
+    return count > 1;
+}
+
+// Fonction récursive pour générer les combinaisons
+static bool	combinaisons(int *nombres, int set[50][4], int *index, bool *hash, int start, int size) 
+{
+    if (size > 1)
+	{
+		if (check_sum(set[*index], size) && valid_die(set[*index], size)) 
+			(*index)++;
+		else
+			bzero(set[*index], sizeof(int) * 4);
+/*
+            for (int i = 0; i < size; i++)
+                printf("%d ", combinaison[i]);
+            printf("\n");
+*/
+	}
+
+    for (int i = start; i < 4; i++)
+	{
+        if (!hash[i])
+		{
+            hash[i] = true;
+            set[*index][size] = i;
+            combinaisons(nombres, set, index, hash, i + 1, size + 1);
+            hash[i] = false;
+        }
+    }
+	return false;
+}
+
+int main(int argc, char *argv[])
+{
+	int set[50][4];
+	int index = 0;
+    int nombres[4];
+    bool hash[4] = {false};
+
+	for (int i = 0; i < 4; i++)
+        nombres[i] = atoi(argv[i + 1]);
+
+	combinaisons(nombres, set, &index, hash, 0, 0);
+	
+	/*
+	while (combinaisons(nombres, combinaison, hash, 0, 0))
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			printf("%d", combinaison[i]);
+			i == 3 ? printf("\n") : printf(" ");
+		}
+	}
+	*/
+
+	for (int i = 0; i < index; i++)
+	{
+		for (int  j = 0; j < 4; j++)
+		{
+			printf("%d", set[i][j]);
+			j == 3 ? printf("\n") : printf(" ");	
+		}
+	}
+
+    return 0;
+}
+

@@ -25,18 +25,11 @@
 
 #define CAP_HEURISTIC 10
 
-typedef struct queue
+typedef	struct combs
 {
-    int sum;
-    int indexes[4];
-}	t_queue;
-
-typedef struct move
-{
-    int 	index;
-    int 	priority;
-	t_queue queue[256];
-}	t_move;
+	int	depth;
+	int	board[ROW_SIZE][COL_SIZE];
+}	t_comb;
 
 static const int directions[DIRECTIONS][ITOT] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 
@@ -65,13 +58,14 @@ static inline long hash(int board[ROW_SIZE][COL_SIZE])
 }
 
 
-//
+/*
 int compare(const void *a, const void *b)
 {
     t_move *moveA = (t_move *)a;
     t_move *moveB = (t_move *)b;
     return moveB->priority - moveA->priority;
 }
+*/
 
 //
 static inline int check_position(int grid[ROW_SIZE][COL_SIZE], int row, int col) 
@@ -90,40 +84,13 @@ static inline void captured(int *board, int *sum, int *captures, int temp)
     *board = 0;
 }
 
-static void	generateCombinations(t_queue *queue, int *nums, int start, int *combination, int *originalIndexes, int combLen, int *queueIndex)
-{
-    int sum = 0;
-
-    if (combLen > 1 && combLen <= DIRECTIONS)
-    {
-        for (int i = 0; i < combLen; i++)
-            sum += combination[i];
-        if (sum < MAX)
-        {
-            queue[*queueIndex].sum = sum;
-            memcpy(queue[*queueIndex].indexes, originalIndexes, sizeof(int) * DIRECTIONS);
-            (*queueIndex)++;
-        }
-    }
-
-    for (int i = start; i < DIRECTIONS; i++)
-    {
-        combination[combLen] = nums[i];
-        originalIndexes[i] = nums[i];
-        generateCombinations(queue, nums, i + 1, combination, originalIndexes, combLen + 1, queueIndex);
-        originalIndexes[i] = 0;
-	}
-}
-
 //
-static void	explore(t_queue *queue, int board[ROW_SIZE][COL_SIZE], int row, int col)
+static void	explore(int board[ROW_SIZE][COL_SIZE], int row, int col)
 {
 	int	new_row;
 	int	new_col;
-	int queueIndex = 0;
 	int combinations[4];
 	int nums[DIRECTIONS];
-	int originalIndexes[DIRECTIONS] = {0};
 
 	for (int  i = 0; i < DIRECTIONS; i++)
 	{
@@ -132,7 +99,6 @@ static void	explore(t_queue *queue, int board[ROW_SIZE][COL_SIZE], int row, int 
    		if (check_position(board, new_row, new_col)) 
 			nums[i] = board[new_row][new_col];
     }
-	generateCombinations(queue, nums, 0, combinations, originalIndexes, 0, &queueIndex);
 }
 
 //
@@ -184,11 +150,9 @@ static int evaluate_capture(int board[ROW_SIZE][COL_SIZE], int row, int col)
 }
 
 //
-static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos)
+static bool is_safe(int board[ROW_SIZE][COL_SIZE], int row, int col)
 {
 	int sum = 0;
-    int row = *pos / COL_SIZE;
-    int col = *pos % COL_SIZE;
     int save[ROW_SIZE][COL_SIZE];
 
     if (board[row][col] == 0)
@@ -207,13 +171,10 @@ static bool is_safe(int board[ROW_SIZE][COL_SIZE], int *pos)
 }
 
 //
-static void	recursion(int board[ROW_SIZE][COL_SIZE], int *ret, int depth)
+static void	recursion(t_comb combs[50], int *index, int board[ROW_SIZE][COL_SIZE], int *ret, int depth)
 {
     int row;
     int col;
-	int	pos = 0;
-    t_move	temp;
-    t_move	moves[GRID_SIZE] = {0};
     
 	if (depth > 0)
 	{
@@ -223,28 +184,16 @@ static void	recursion(int board[ROW_SIZE][COL_SIZE], int *ret, int depth)
 		{
 	        row = i / COL_SIZE;
 	        col = i % COL_SIZE;
-			moves[i].index = i;
-			moves[i].priority = evaluate_capture(board, row, col);
-			if (moves[i].priority > CAP_HEURISTIC)
-				explore(moves[i].queue, board, row, col);
-		}
 
-		//Priority queue based on the possibility to capture with the current
-		//state of the board
-	
-		qsort(moves, GRID_SIZE, sizeof(t_move), compare);
 
-	    // Try captures in order of priority
-	
-	    for (int i = 0; i < GRID_SIZE; i++)
-		{
-	        pos = moves[i].index;
-	        
-// Changer ce bloc -> il faut remplcaer les cases en suivant la queue
 
-			if (is_safe(board, &pos))
-	            recursion(board, ret, depth - 1);
-	    }
+			if (is_safe(board, row, col))
+			{
+				combs[*index].depth = depth;
+				memcpy(combs[*index].board, board, sizeof(int) * GRID_SIZE);
+				recursion(combs, index, board, ret, depth - 1);
+			}
+		}	
 	}
 	*ret = (*ret + hash(board)) % HASH; 
 }
@@ -265,13 +214,15 @@ int main(void)
 {
 	int	ret = 0;
     int depth = 0;
+	int	combindex = 0;
+	t_comb	combinations[50];
     int board[ROW_SIZE][COL_SIZE] = {0};
 
     get_input(&depth, board);
 
     print_grid(board);
 
-    recursion(board, &ret, depth);
+    recursion(combinations, &combindex, board, &ret, depth);
 
     print_grid(board);
 
